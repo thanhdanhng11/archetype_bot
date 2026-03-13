@@ -1,0 +1,37 @@
+
+-- bảng trạng thái đồng bộ. bảng này cho biết bot python đang đọc tới block nào để trong trường hợp bị crash thì có thể tự động khôi phục
+/*CREATE TABLE sync_state (
+    network_id VARCHAR(20) PRIMARY KEY,
+    last_processed_block BIGINT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
+
+-- bảng danh mục token. lưu trữ thông tin hằng số để tránh việc phải gọi on-chain hỏi số thập phân liên tục
+CREATE TABLE tokens (
+    token_address CHAR(42) PRIMARY KEY,
+    symbol  varchar(15) NOT NULL,
+    decimals SMALLINT NOT NULL 
+);
+
+-- bảng vị thế người vay (lending-positions). bảng này lưu trữ trạng thái nợ và thế chấp của từng ví
+CREATE TABLE lending_positions (
+    user_address CHAR(42) NOT NULL, 
+    collateral_asset CHAR(42) NOT NULL,
+    debt_asset CHAR(42) NOT NULL,
+
+    collateral_amount NUMERIC(78, 0) DEFAULT 0,
+    debt_amount NUMERIC(78, 0) DEFAULT 0,
+
+    health_factor NUMERIC(30, 18),
+
+    last_updated_block BIGINT NOT NULL,
+
+    PRIMARY KEY (user_address, collateral_asset, debt_asset)
+);
+
+CREATE INDEX idx_vulneralbe_positions 
+ON lending_positions (health_factor)
+WHERE health_factor < 1.0;
+
+CREATE INDEX idx_user_address ON lending_positions (user_address); 
+*/
