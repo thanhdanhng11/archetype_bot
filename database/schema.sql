@@ -1,6 +1,6 @@
 
 -- bảng trạng thái đồng bộ. bảng này cho biết bot python đang đọc tới block nào để trong trường hợp bị crash thì có thể tự động khôi phục
-/*CREATE TABLE sync_state (
+CREATE TABLE sync_state (
     network_id VARCHAR(20) PRIMARY KEY,
     last_processed_block BIGINT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -34,4 +34,3 @@ ON lending_positions (health_factor)
 WHERE health_factor < 1.0;
 
 CREATE INDEX idx_user_address ON lending_positions (user_address); 
-*/

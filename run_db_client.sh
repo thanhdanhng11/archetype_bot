@@ -2,6 +2,6 @@
 # Activate the virtual environment
 source venv/bin/activate
 # Run the decoder
-python3 brain/decoder.py
+python3 brain/db_client.py
 
-# run chmod +x run_decoder.sh first
+# run chmod +x run_db_client.sh first
