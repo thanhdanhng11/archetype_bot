@@ -4,35 +4,73 @@ from web3 import Web3
 
 class EventDecoder: 
     def __init__(self):
-        # Resolve absolute path to ensure it works regradless of where the script is executed from
+        """
+        Initializes the decoder and loads the tactical ABIs.
+        We now track both basic tokens and complex lending pools.
+        """
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        erc20_abi_path = os.path.join(base_dir, 'abis', 'erc20.json')
-
-        with open(erc20_abi_path, 'r') as file:
+        
+        # Load ERC20 ABI
+        with open(os.path.join(base_dir, 'abis', 'erc20.json'), 'r') as file:
             self.erc20_abi = json.load(file)
-
+            
+        # Load Aave V3 Pool ABI
+        with open(os.path.join(base_dir, 'abis', 'aave_pool.json'), 'r') as file:
+            self.aave_abi = json.load(file)
+            
         self.w3 = Web3()
-
-        # Create a contract factory. We don't bind it to a specific address yet, allowing us to decode Transfer events from ANY ERC20 token contract.
+        
+        # Contract factories for decoding
         self.erc20_contract = self.w3.eth.contract(abi=self.erc20_abi)
+        self.aave_contract = self.w3.eth.contract(abi=self.aave_abi)
 
     def decode_transfer(self, raw_log):
-        try: 
-            # The process_log finction automatically verifies if topic[0] matches the Transfer signature
-            decoded_event = self.erc20_contract.events.Transfer().process_log(raw_log)
-            
-            # Extract the core arguments neatly
-            args = decoded_event['args']
+        try:
+            decoded = self.erc20_contract.events.Transfer().process_log(raw_log)
             return {
-                "contract_address": decoded_event['address'].lower(),
-                "from": args['from'].lower(),
-                "to": args['to'].lower(),
-                "value": args['value']
+                "type": "TRANSFER",
+                "contract": decoded['address'].lower(),
+                "from": decoded['args']['from'].lower(),
+                "to": decoded['args']['to'].lower(),
+                "value": decoded['args']['value']
             }
         except Exception:
-            # Silent discard: If the log is not a Transfer event, we ignore the noise.
             return None
-        
+
+    def decode_aave_borrow(self, raw_log):
+        """
+        Extracts debt creation events. This is the first step in finding liquidation targets.
+        """
+        try:
+            decoded = self.aave_contract.events.Borrow().process_log(raw_log)
+            return {
+                "type": "BORROW",
+                "protocol": "AAVE_V3",
+                "pool": decoded['address'].lower(),
+                "asset": decoded['args']['reserve'].lower(),
+                "user": decoded['args']['user'].lower(),
+                "amount": decoded['args']['amount']
+            }
+        except Exception:
+            return None
+
+    def decode_aave_repay(self, raw_log):
+        """
+        Extracts debt reduction events. We must track this to ensure our targets 
+        haven't already saved themselves from liquidation.
+        """
+        try:
+            decoded = self.aave_contract.events.Repay().process_log(raw_log)
+            return {
+                "type": "REPAY",
+                "protocol": "AAVE_V3",
+                "pool": decoded['address'].lower(),
+                "asset": decoded['args']['reserve'].lower(),
+                "user": decoded['args']['user'].lower(),
+                "amount": decoded['args']['amount']
+            }
+        except Exception:
+            return None
 
 if __name__ == "__main__":
-    print("EventDecoder module is ready.")
+    print("[*] EventDecoder module upgraded with Lending Protocol intelligence.")

@@ -55,6 +55,31 @@ class DatabaseClient:
         if self.pool: 
             async with self.pool.acquire() as connection: 
                 await connection.execute(query, network_id, block_number) 
+    
+    async def update_debt_position(self, user: str, protocol: str, asset: str, amount_delta: int):
+        """
+        Atomically updates a user's debt balance in the lending_positions table.
+        - If they Borrow, amount_delta is positive (+).
+        - If they Repay, amount_delta is negative (-).
+        
+        Using ON CONFLICT allows the database engine to handle the math safely, 
+        even if thousands of events are processing concurrently.
+        """
+        query = """
+            INSERT INTO lending_positions (user_address, protocol, asset, debt_amount)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_address, protocol, asset) 
+            DO UPDATE SET 
+                debt_amount = lending_positions.debt_amount + EXCLUDED.debt_amount,
+                updated_at = CURRENT_TIMESTAMP;
+        """
+        if self.pool:
+            try:
+                # Acquire a connection and execute the mathematical upsert
+                async with self.pool.acquire() as connection:
+                    await connection.execute(query, user, protocol, asset, amount_delta)
+            except Exception as e:
+                print(f"[-] Database Error (update_debt_position): {e}")
 
 # Quick local test execution
 async def main_test(): 
