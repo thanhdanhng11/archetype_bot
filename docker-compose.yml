@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: archetype_postgres
+    restart: unless-stopped
+    environment:
+      # These must perfectly match the credentials in your .env file
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: archetype_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # The Magic Trick: Docker will automatically execute this SQL file 
+      # to build your tables the very first time the container boots.
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    
+  redis:
+    image: redis:7-alpine
+    container_name: archetype_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
