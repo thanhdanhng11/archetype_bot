@@ -19,3 +19,7 @@ std::string build_liquidation_tx(const ExecutionPayload& payload);
 std::string fire_rpc_request(const std::string& rpc_url, const std::string& json_payload);
 
 std::string sign_transaction(const std::string& private_key_hex, const std::string& keccak_hash_hex);
+
+std::string get_wallet_nonce(const std::string& rpc_url, const std::string& wallet_address);
+
+std::string get_gas_price(const std::string& rpc_url);

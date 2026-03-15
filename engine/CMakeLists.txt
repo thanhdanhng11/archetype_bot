@@ -16,6 +16,7 @@ add_executable(archetype_engine
     src/tx_builder.cpp
     src/rpc_client.cpp
     src/signer.cpp
+    src/gas_manager.cpp
 )
 
 # Link the required high-speed C libraries
