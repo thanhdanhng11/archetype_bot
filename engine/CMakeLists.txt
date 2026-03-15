@@ -14,7 +14,8 @@ add_executable(archetype_engine
     src/main.cpp
     src/ipc_receiver.cpp
     src/tx_builder.cpp
+    src/rpc_client.cpp
 )
 
 # Link the required high-speed C libraries
-target_link_libraries(archetype_engine hiredis)
+target_link_libraries(archetype_engine hiredis curl)
