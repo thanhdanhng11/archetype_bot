@@ -17,3 +17,5 @@ ExecutionPayload parse_redis_payload(const std::string& raw_json);
 std::string build_liquidation_tx(const ExecutionPayload& payload);
 
 std::string fire_rpc_request(const std::string& rpc_url, const std::string& json_payload);
+
+std::string sign_transaction(const std::string& private_key_hex, const std::string& keccak_hash_hex);
