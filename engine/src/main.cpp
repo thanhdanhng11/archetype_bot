@@ -1,51 +1,51 @@
-#include <hiredis/hiredis.h>
 #include <iostream>
+#include <hiredis/hiredis.h>
 #include <string>
+#include "../include/types.hpp"
 
 int main() {
+    std::cout << "[*] The Archetype C++ Engine is booting..." << std::endl;
 
-  std::cout << "The Archetype C++ Engine is booting..." << std::endl;
-
-  // 1. Establish a low-level socket connection to the Redis container
-  redisContext *context = redisConnect("127.0.0.1", 6379);
-  if (context == NULL || context->err) {
-    if (context) {
-      std::cerr << "Critical Error: Redis connection failed -> "
-                << context->errstr << std::endl;
-      redisFree(context);
-
-    } else {
-      std::cerr << "Critical Error: Failed to allocate Redis context."
-                << std::endl;
-    }
-    return 1;
-  }
-
-  std::cout << "Engine neural link establised. Awaiting execution signals..." << std::endl;
-
-  // 2. The Infinite loop
-  while (true) {
-    // BLPOP blocks the thread entirely until a payload arrives in the 'liquidation_orders' queue
-    redisReply *reply = (redisReply *)redisCommand(context, "BLPOP liquidation_orders 0"); 
-    if (reply == NULL) {
-        std:: cerr << "Redis communication severed." << std::endl;
-        break;
+    redisContext *context = redisConnect("127.0.0.1", 6379);
+    if (context == NULL || context->err) {
+        std::cerr << "[-] Critical Error: Redis connection failed." << std::endl;
+        if (context) redisFree(context);
+        return 1;
     }
 
-    // BLPOP returns an array: element [0] is the queue name, element [1] is the payload string
-    if (reply->type == REDIS_REPLY_ARRAY && reply->elements == 2) {
-        std::string payload = reply->element[1]->str;
-        std::cout << "Raw Payload: " << payload << std::endl;
-        std::cout << "Routing to Transaction Builder..." << std::endl;
-        std::cout << "--------------------------------------------------" << std::endl;
+    std::cout << "[+] Engine neural link established. Awaiting execution signals..." << std::endl;
 
-        // Future step: pass this raw JSON string to tx_builder.cpp to craft the blockchain transaction
+    while (true) {
+        redisReply *reply = (redisReply *)redisCommand(context, "BLPOP liquidation_orders 0");
+
+        if (reply == NULL) {
+            std::cerr << "[-] Redis communication severed." << std::endl;
+            break;
+        }
+
+        if (reply->type == REDIS_REPLY_ARRAY && reply->elements == 2) {
+            std::string raw_payload = reply->element[1]->str;
+            
+            // Pass the raw string to our new parser
+            ExecutionPayload target_data = parse_redis_payload(raw_payload);
+            
+            std::cout << "\n[⚡] SIGNAL PARSED SUCCESSFULLY [⚡]" << std::endl;
+            std::cout << "      -> Target: " << target_data.target_user << std::endl;
+            std::cout << "      -> Asset:  " << target_data.debt_asset << std::endl;
+            std::cout << "      -> Amount: " << target_data.amount << std::endl;
+            std::cout << "--------------------------------------------------" << std::endl;
+            
+            // Next up: Send 'target_data' to tx_builder.cpp
+            std::string hex_tx_data = build_liquidation_tx(target_data);
+            std::cout << "\n[⚡] TRANSACTION DATA ENCODED [⚡]" << std::endl;
+            std::cout << "      -> Target: " << target_data.target_user << std::endl;
+            std::cout << "      -> Payload: " << hex_tx_data << std::endl;
+            std::cout << "--------------------------------------------------" << std::endl;
+        }
+
+        freeReplyObject(reply);
     }
-    
-    freeReplyObject(reply);
-  }
 
-  // clean up memory on exit (though this loop never naturally exits)
-  redisFree(context);
-  return 0;
+    redisFree(context);
+    return 0;
 }
