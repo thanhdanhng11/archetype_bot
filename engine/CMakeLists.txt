@@ -18,7 +18,8 @@ add_executable(archetype_engine
     src/signer.cpp
     src/gas_manager.cpp
     src/rlp.cpp
+    src/keccak.cpp
 )
 
 # Link the required high-speed C libraries
-target_link_libraries(archetype_engine hiredis curl secp256k1)
+target_link_libraries(archetype_engine hiredis curl secp256k1 cryptopp)

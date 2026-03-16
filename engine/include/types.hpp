@@ -30,3 +30,5 @@ std::string rlp_encode_item(const std::string& hex_input);
 std::string rlp_encode_list(const std::vector<std::string>& encoded_items);
 
 std::string bytes_to_hex_string(const std::string& bytes);
+
+std::string generate_keccak256_hash(const std::string& rlp_hex_payload);
