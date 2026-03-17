@@ -19,7 +19,6 @@ std::string build_liquidation_tx(const ExecutionPayload& payload);
 
 std::string fire_rpc_request(const std::string& rpc_url, const std::string& json_payload);
 
-std::string sign_transaction(const std::string& private_key_hex, const std::string& keccak_hash_hex);
 
 std::string get_wallet_nonce(const std::string& rpc_url, const std::string& wallet_address);
 
@@ -32,3 +31,5 @@ std::string rlp_encode_list(const std::vector<std::string>& encoded_items);
 std::string bytes_to_hex_string(const std::string& bytes);
 
 std::string generate_keccak256_hash(const std::string& rlp_hex_payload);
+
+std::vector<std::string> sign_transaction(const std::string& private_key_hex, const std::string& keccak_hash_hex);
