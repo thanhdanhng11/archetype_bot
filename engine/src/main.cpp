@@ -12,7 +12,7 @@ const std::string RPC_URL = "https://arb1.arbitrum.io/rpc";
 const std::string WALLET_ADDRESS = "0x1111111111111111111111111111111111111111"; // 40 characters
 const std::string PRIVATE_KEY = "1111111111111111111111111111111111111111111111111111111111111111"; // 64 characters
 
-const std::string AAVE_V3_POOL = "0x794a61358D6845594F94dc1DB02A252b5b4814aD"; 
+const std::string ARCHETYPE_CONTRACT = "0x88D5210650e2608bAB7272BC223Ee4E856c9e101"; 
 const std::string GAS_LIMIT = "0x7A120"; // 500,000 gas limit in hex
 const int CHAIN_ID_INT = 42161;          // Arbitrum Mainnet
 const std::string CHAIN_ID_HEX = "0xA4B1"; // 42161 in hex
@@ -46,8 +46,24 @@ int main() {
             std::cout << "\n[⚡] TARGET ACQUIRED. INITIATING STRIKE SEQUENCE [⚡]" << std::endl;
             
             // 1. Parse & Build the Bullet
-            ExecutionPayload target_data = parse_redis_payload(raw_payload);
-            std::string hex_tx_data = build_liquidation_tx(target_data);
+            // Your Live Assassin Contract
+            std::string target_contract = "0x88D5210650e2608bAB7272BC223Ee4E856c9e101";
+
+            // Mock Sepolia Test Data
+            std::string target_user = "0x1111111111111111111111111111111111111111"; // Fake target
+            std::string debt_asset = "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"; // Sepolia USDC
+            std::string collateral_asset = "0x980B62Da83eFf3A457E0d4fCEEA2A4F687D03b0b"; // Sepolia WETH
+            std::string debt_amount_hex = "00000000000000000000000000000000000000000000000000000000000F4240"; // 1,000,000 in hex (1 USDC) without 0x
+
+            // The Trigger Code
+            std::string function_selector = "fa83bfae"; 
+
+            // The Final Assembly
+            std::string hex_tx_data = "0x" + function_selector + 
+                                       pad_to_32bytes(target_user) + 
+                                       pad_to_32bytes(debt_asset) + 
+                                       pad_to_32bytes(collateral_asset) + 
+                                       pad_to_32bytes(debt_amount_hex);
             
             // 2. Fetch the Gunpowder
             std::string nonce = get_wallet_nonce(RPC_URL, WALLET_ADDRESS);
@@ -56,7 +72,7 @@ int main() {
             // 3. The Dummy RLP Packaging (EIP-155 Prep)
             std::vector<std::string> unsigned_items = {
                 rlp_encode_item(nonce), rlp_encode_item(gas_price), rlp_encode_item(GAS_LIMIT),
-                rlp_encode_item(AAVE_V3_POOL), rlp_encode_item("0x0"), rlp_encode_item(hex_tx_data),
+                rlp_encode_item(ARCHETYPE_CONTRACT), rlp_encode_item("0x0"), rlp_encode_item(hex_tx_data),
                 rlp_encode_item(CHAIN_ID_HEX), rlp_encode_item("0x"), rlp_encode_item("0x")
             };
             
@@ -79,7 +95,7 @@ int main() {
                 // 5. The Final RLP Packaging (The Real Bullet)
                 std::vector<std::string> signed_items = {
                     rlp_encode_item(nonce), rlp_encode_item(gas_price), rlp_encode_item(GAS_LIMIT),
-                    rlp_encode_item(AAVE_V3_POOL), rlp_encode_item("0x0"), rlp_encode_item(hex_tx_data),
+                    rlp_encode_item(ARCHETYPE_CONTRACT), rlp_encode_item("0x0"), rlp_encode_item(hex_tx_data),
                     rlp_encode_item(final_v_hex), rlp_encode_item(r_hex), rlp_encode_item(s_hex)
                 };
                 

@@ -23,7 +23,7 @@ class SignalTransmitter:
         except redis.ConnectionError as e:
             print(f"[-] Critical Error: Failed to connect to Redis -> {e}")
 
-    def fire_kill_signal(self, target_user: str, debt_asset: str, amount_to_repay: int):
+    def fire_kill_signal(self, target_user: str, debt_asset: str, collateral_asset: str, amount_to_repay: int):
         """
         Constructs the execution payload and fires it into the Redis queue.
         The C++ Engine will instantly pop this payload and build the blockchain transaction.
@@ -31,6 +31,7 @@ class SignalTransmitter:
         payload = {
             "target": target_user.lower(),
             "asset": debt_asset.lower(),
+            "collateral": collateral_asset.lower(),
             "amount": str(amount_to_repay), # Convert to string to prevent precision loss in JSON
             "timestamp": datetime.utcnow().isoformat()
         }
@@ -41,6 +42,7 @@ class SignalTransmitter:
             print(f"\n[!!!] EXECUTION SIGNAL FIRED [!!!]")
             print(f"      -> Target: {target_user}")
             print(f"      -> Asset:  {debt_asset}")
+            print(f"      -> Collateral: {collateral_asset}")
             print(f"      -> Amount: {amount_to_repay}")
             print("--------------------------------------------------")
         except Exception as e:
@@ -55,5 +57,6 @@ if __name__ == "__main__":
     transmitter.fire_kill_signal(
         target_user="0x1234567890abcdef1234567890abcdef12345678",
         debt_asset="0xaf88d065e77c8cc2239327c5edb3a432268e5831", # USDC on Arbitrum
+        collateral_asset="0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", # WETH on Arbitrum
         amount_to_repay=50000000000 # 50,000 USDC (6 decimals)
     )

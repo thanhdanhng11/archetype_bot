@@ -15,6 +15,7 @@ ExecutionPayload parse_redis_payload(const std::string& raw_json) {
         // Map the json fields directly to our C++ struct
         payload.target_user = j.at("target").get<std::string>();
         payload.debt_asset = j.at("asset").get<std::string>(); 
+        payload.collateral_asset = j.at("collateral").get<std::string>();
         payload.amount = j.at("amount").get<std::string>();
         payload.timestamp = j.at("timestamp").get<std::string>(); 
 

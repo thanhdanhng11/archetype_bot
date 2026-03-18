@@ -8,12 +8,15 @@
 struct ExecutionPayload {
     std::string target_user;
     std::string debt_asset;
+    std::string collateral_asset;
     std::string amount;
     std::string timestamp;
 };
 
 // Function declaration for our parser
 ExecutionPayload parse_redis_payload(const std::string& raw_json);
+
+std::string pad_to_32bytes(std::string hex_value);
 
 std::string build_liquidation_tx(const ExecutionPayload& payload);
 
