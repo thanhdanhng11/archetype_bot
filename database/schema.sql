@@ -13,24 +13,16 @@ CREATE TABLE tokens (
     decimals SMALLINT NOT NULL 
 );
 
--- bảng vị thế người vay (lending-positions). bảng này lưu trữ trạng thái nợ và thế chấp của từng ví
+-- bảng vị thế người vay (lending-positions). bảng này lưu trữ trạng thái nợ cục bộ từng loại tài sản
 CREATE TABLE lending_positions (
     user_address CHAR(42) NOT NULL, 
-    collateral_asset CHAR(42) NOT NULL,
-    debt_asset CHAR(42) NOT NULL,
+    protocol VARCHAR(20) NOT NULL,
+    asset CHAR(42) NOT NULL,
 
-    collateral_amount NUMERIC(78, 0) DEFAULT 0,
     debt_amount NUMERIC(78, 0) DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    health_factor NUMERIC(30, 18),
-
-    last_updated_block BIGINT NOT NULL,
-
-    PRIMARY KEY (user_address, collateral_asset, debt_asset)
+    PRIMARY KEY (user_address, protocol, asset)
 );
 
-CREATE INDEX idx_vulneralbe_positions 
-ON lending_positions (health_factor)
-WHERE health_factor < 1.0;
-
-CREATE INDEX idx_user_address ON lending_positions (user_address); 
+CREATE INDEX idx_user_address ON lending_positions (user_address);
