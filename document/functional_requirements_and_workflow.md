@@ -44,53 +44,85 @@ This document covers the functional requirements, detailing exactly what the sys
 
 ## Step-by-Step System Workflow
 
+### BPMN (Business Process Model and Notation) - Process Flow
+```mermaid
+flowchart TD
+    subgraph Brain[Python Brain]
+        Start((Start)) --> Listen["Listen for newHeads"]
+        Listen --> FetchLogs["Fetch Block Logs"]
+        FetchLogs --> Decode["Decode Events"]
+        Decode --> UPSERTDB[("UPSERT DB")]
+        UPSERTDB --> FetchOracle["Fetch Prices"]
+        FetchOracle --> CalcHF{"HF < 1.0?"}
+        CalcHF -- Yes --> FireIPC["LPUSH Redis"]
+        CalcHF -- No --> Listen
+    end
+    
+    subgraph Engine[C++ Engine]
+        WaitIPC((Wait IPC)) --> BLPOP["BLPOP Queue"]
+        BLPOP --> Pad["Zero-pad"]
+        Pad --> FetchGas["Fetch Gas"]
+        FetchGas --> EncodeSign["Sign TX"]
+        EncodeSign --> Broadcast(["Send TX"])
+    end
+
+    subgraph Blockchain[Arbitrum]
+        ReceiveTx((Receive)) --> SC["Smart Contract"]
+        SC --> FLS["flashLoanSimple"]
+        FLS --> LiqCall["liquidationCall"]
+        LiqCall --> Swap["Swap Uniswap"]
+        Swap --> RepayAave["Repay Aave"]
+        RepayAave --> Profit(("Profit"))
+    end
+
+    FireIPC -. "Target Payload" .-> WaitIPC
+    Broadcast -. "Signed TX" .-> ReceiveTx
+```
+
+### ERD (Entity Relationship Diagram) - State Maintenance
+```mermaid
+erDiagram
+    SYNC_STATE {
+        string network_id PK "e.g., arbitrum_mainnet"
+        int last_processed_block
+        timestamp updated_at
+    }
+    
+    LENDING_POSITIONS {
+        string user_address PK
+        string protocol PK "e.g., AAVE_V3"
+        string asset PK "e.g., 0xff97..."
+        int debt_amount
+        timestamp updated_at
+    }
+```
+
+### Sequence Flow - System Execution Order
 ```mermaid
 sequenceDiagram
-    participant B as Python Brain (Ingestion)
-    participant O as Chainlink (Oracle)
-    participant DB as PostgreSQL (State)
-    participant R as Redis (IPC Queue)
-    participant E as C++ Engine (Muscle)
+    participant Brain as Python (Brain)
+    participant Oracle as Chainlink
+    participant Redis as IPC Queue
+    participant Engine as C++ (Engine)
     participant Node as RPC Node
-    participant SC as Smart Contract (Archetype)
-    participant Aave as Aave V3 Pool
-    participant Uni as Uniswap V3 Router
+    participant SC as Smart Contract
 
-    Note over B: 1. Listen for newBlocks
-    B->>Node: Subscribe to newHeads (WSS)
-    Node-->>B: Block 123456 Logs
-    B->>B: Decode Borrows & Repays
+    Brain->>Node: Subscribe (newHeads)
+    Node-->>Brain: Block Logs
+    Brain->>Oracle: Get Asset Prices
+    Oracle-->>Brain: USD Prices
     
-    Note over B, DB: 2. Update System State
-    B->>DB: UPSERT Debt Positions (+ or -)
-    B->>DB: UPDATE sync_state (Block 123456)
+    Note over Brain: Calculate HF < 1.0
+    Brain->>Redis: LPUSH Payload
     
-    Note over B, O: 3. Health Factor Simulation
-    B->>O: Get Live Asset Prices (USD)
-    O-->>B: Price Data
-    B->>B: Calculate HF < 1.0 (Target Found!)
+    Redis-->>Engine: Wake BLPOP Thread
+    Note over Engine: Pad Payload & Assemble
+    Engine->>Node: Get Nonce & Gas
+    Node-->>Engine: Nonce/Gas Data
     
-    Note over B, R: 4. Fire the Kill Signal
-    B->>R: LPUSH liquidation_orders (Target, Debt, Collateral, Amount)
+    Note over Engine: Keccak Hash & ECDSA Sign
+    Engine->>Node: eth_sendRawTransaction
     
-    Note over E, R: 5. Payload Assembly & Signing
-    R-->>E: BLPOP triggers C++ Engine
-    E->>E: Zero-pad to 32 bytes & append to fa83bfae selector
-    E->>Node: Get Nonce & Gas Price
-    Node-->>E: nonce: 4, gas: 0.1 gwei
-    E->>E: RLP Encode -> Keccak256 Hash -> ECDSA Sign
-    
-    Note over E, Node: 6. Execution Broadcast
-    E->>Node: eth_sendRawTransaction(signedTx)
-    
-    Note over Node, SC: 7. On-Chain Liquidation
-    Node->>SC: call initiateStrike(user, debt, col, amt)
-    SC->>Aave: flashLoanSimple(amount)
-    Aave-->>SC: executeOperation() callback (Funds transferred)
-    SC->>Aave: liquidationCall(user) (Repay debt, Receive Collateral at discount)
-    Aave-->>SC: Sends seized Collateral (e.g., WETH)
-    SC->>Uni: exactInputSingle() (Swap Collateral back to Debt token)
-    Uni-->>SC: Sends swapped Debt token (e.g., USDC)
-    SC->>Aave: Repay Flash Loan Principal + Premium
-    Note over SC: 8. Profit Retained in Contract
+    Node->>SC: initiateStrike()
+    Note over SC: Execute Flash Loan & Swap
 ```

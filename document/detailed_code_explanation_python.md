@@ -39,8 +39,21 @@ The Python Brain is the intelligence center of the Archetype Bot. While C++ is o
 - **Optimization:** Chainlink historically uses 8 decimal accuracy for USD pairs (e.g. `2000000000` = `$2,000`). It calculates `raw_price / (10 ** 8)` to provide floating-point standardized calculations used later against Aave debt positions to perfectly calculate Health Ratios.
 
 ## 5. `brain/ipc_sender.py`
-**Purpose:** Bridges the gap between Python (Analysis) and C++ (Execution). 
+**Purpose:** Bridges the gap between Python (Analysis) and C++ (Execution).
 - **Libraries:** `redis`. Redis operates entirely in RAM. Standard IPC (like Unix sockets/Pipelines) can break across Docker containers. Redis Lists bypass this safely.
-- **Function - `fire_kill_signal()`:** Accepts isolated parameters (`target_user`, `debt_asset`, `collateral_asset`, `amount`). 
+- **Function - `fire_kill_signal()`:** Accepts isolated parameters (`target_user`, `debt_asset`, `collateral_asset`, `amount`).
 - **Data Safety:** Python floats/integers lose precision in Javascript/JSON due to byte limits (safe max is `9007199254740991`). Ethereum deals in Wei (`10**18`). `ipc_sender` forcefully converts `str(amount_to_repay)` into a String before `json.dumps()` serialization to guarantee mathematically flawless data transit.
-- **Execution:** Calls `self.redis_client.lpush("liquidation_orders", json)`. This command perfectly awakens the sleeping `BLPOP` C++ Engine thread.
+- **Execution:** Calls `self.redis_client.lpush("archetype_execute", json)`. This command perfectly awakens the sleeping `BLPOP` C++ Engine thread.
+
+## 6. `brain/mock_injector.py`
+**Purpose:** Phase 4 E2E Testnet Simulation trigger script. Bypasses live mempool scanning and injects a synthetic Arbitrum Sepolia target into the pipeline for validation.
+- **Channel:** Publishes to `archetype_execute` — the same channel the C++ engine subscribes to.
+- **Payload:** Uses Sepolia USDC (`0x75faf...`) as the debt asset and Sepolia WETH (`0x980B...`) as the collateral, with an amount of `1,000,000` (1 USDC, 6 decimals).
+- **Run:** `venv/bin/python brain/mock_injector.py`
+
+## 7. `brain/tests/test_decoder.py` & `test_ipc.py`
+**Purpose:** PyTest automation suite that validates the Python Brain outputs are stable and accurate.
+- `test_decoder.py` — mocks the Web3 event pipeline and asserts `decode_aave_borrow` and `decode_aave_repay` return correct typed dictionaries with lowercased addresses.
+- `test_ipc.py` — mocks the Redis client and asserts that `fire_kill_signal` pushes to the correct `liquidation_orders` queue key, applies lowercase enforcement, and casts amounts as strings.
+- **Run:** `venv/bin/python -m pytest brain/tests/ -v`
+- **Status:** All 3 tests pass.

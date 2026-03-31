@@ -12,7 +12,7 @@ This final document traces the high-level execution order of the system from boo
 
 3. **`engine/src/main.cpp` (The Muscle - Background Daemon)**
    - The C++ engine boots and connects to the active Redis server on port `6379`.
-   - It issues `BLPOP liquidation_orders 0`, intentionally hanging the execution thread entirely. It now sleeps, silently waiting for the kill signal.
+   - It issues `BLPOP archetype_execute 0`, intentionally hanging the execution thread entirely. It now sleeps, silently waiting for the kill signal from the `archetype_execute` channel.
 
 4. **`brain/main.py` (The Brain - Continuous Loop)**
    - The Python brain boots.
@@ -44,7 +44,10 @@ This final document traces the high-level execution order of the system from boo
 
 - **Zero-Latency Architecture Established:** By completely bypassing Web3 Python/Javascript libraries for the crucial transaction signing phase, the Archetype bot achieved massive execution speed advantages by handling RLP encoding and ECDSA signing natively in C++.
 - **Asynchronous Data Ingestion:** Successfully implemented a non-blocking `asyncio` and `asyncpg` PostgreSQL pipeline capable of indexing thousands of Aave V3 lending events concurrently without race conditions.
-- **IPC Safety Protocol:** Successfully bridged isolated Python environments to raw C++ executables using Redis as a highly fault-tolerant intermediary memory broker, allowing language-specific optimizations.
+- **IPC Safety Protocol:** Successfully bridged isolated Python environments to raw C++ executables using Redis as a highly fault-tolerant intermediary memory broker (`archetype_execute` channel), allowing language-specific optimizations.
+- **Dynamic EIP-1559 Gas Engine:** Replaced hardcoded gas prices with a live `baseFeePerGas + priorityTip` calculation, ensuring competitive transaction inclusion without wasting ETH on overpaying.
+- **Automated Test Suite (15/15 Passing):** Implemented a complete cross-language test suite — PyTest (Python), Native Assertions (C++), and Foundry Fork Tests (Solidity) — validating all critical security guards, payload math, and IPC serialization.
+- **Phase 4 E2E Simulation Completed:** Successfully ran the full Python → Redis → C++ → RPC pipeline on Arbitrum Sepolia. The transaction was correctly signed, broadcast, and received by the Sepolia node, confirming complete architectural integrity.
 
 ## 3. Difficulties Encountered
 

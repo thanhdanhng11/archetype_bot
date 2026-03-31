@@ -65,8 +65,12 @@ contract ArchetypeFlashLoan is IFlashLoanSimpleReceiver {
     ISwapRouter public swapRouter; // NEW: The Uniswap execution variable
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Archetype: Unauthorized execution");
+        _checkOwner();
         _;
+    }
+
+    function _checkOwner() internal view {
+        require(msg.sender == owner, "Archetype: Unauthorized execution");
     }
 
     // NEW: We now pass the Uniswap Router address when we deploy the contract

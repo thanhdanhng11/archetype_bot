@@ -37,8 +37,8 @@ class SignalTransmitter:
         }
         
         try:
-            # LPUSH inserts the payload at the head of the list "liquidation_orders"
-            self.redis_client.lpush("liquidation_orders", json.dumps(payload))
+            # LPUSH inserts the payload at the head of the list "archetype_execute"
+            self.redis_client.lpush("archetype_execute", json.dumps(payload))
             print(f"\n[!!!] EXECUTION SIGNAL FIRED [!!!]")
             print(f"      -> Target: {target_user}")
             print(f"      -> Asset:  {debt_asset}")

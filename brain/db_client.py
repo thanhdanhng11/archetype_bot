@@ -81,6 +81,22 @@ class DatabaseClient:
             except Exception as e:
                 print(f"[-] Database Error (update_debt_position): {e}")
 
+    async def get_active_debtors(self):
+        """
+        Fetches a list of unique user addresses who currently have an active debt balance.
+        These are the targets the Apex Hunter will scan for liquidation vulnerability.
+        """
+        query = "SELECT DISTINCT user_address FROM lending_positions WHERE debt_amount > 0;"
+        if self.pool:
+            try:
+                async with self.pool.acquire() as connection:
+                    records = await connection.fetch(query)
+                    return [record['user_address'] for record in records]
+            except Exception as e:
+                print(f"[-] Database Error (get_active_debtors): {e}")
+                return []
+        return []
+
 # Quick local test execution
 async def main_test(): 
     db = DatabaseClient() 
