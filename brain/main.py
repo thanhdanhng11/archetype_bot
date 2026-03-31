@@ -31,7 +31,7 @@ async def main_loop():
         await db.close()
         return
 
-    async with AsyncWeb3(WebSocketProvider(WSS_URL)) as w3:
+    async with AsyncWeb3(WebSocketProvider(WSS_URL, websocket_kwargs={'max_size': 104857600})) as w3:
         if not await w3.is_connected():
             print("[-] Critical Error: Failed to connect to the blockchain node.")
             await db.close()
