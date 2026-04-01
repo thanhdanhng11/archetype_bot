@@ -91,6 +91,9 @@ async def apex_scan_loop():
                             
                 except Exception as e:
                     print(f"[-] Evaluation Error for {user}: {e}")
+                
+                # Throttle execution slightly to avoid 429 RPC Rate Limits
+                await asyncio.sleep(0.5)
                     
             # Cool down before the next hunting sequence (e.g. 10 seconds)
             await asyncio.sleep(10)

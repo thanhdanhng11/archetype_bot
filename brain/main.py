@@ -54,7 +54,22 @@ async def main_loop():
                 await db.update_sync_state(NETWORK_ID, block_number)
                 
                 # Step B: Fetch ALL logs for this specific block
-                block_logs = await w3.eth.get_logs({"fromBlock": block_number, "toBlock": block_number})
+                block_logs = []
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        block_logs = await w3.eth.get_logs({"fromBlock": block_number, "toBlock": block_number})
+                        break
+                    except Exception as e:
+                        if '429' in str(e) or 'compute units' in str(e).lower() or 'capacity' in str(e).lower():
+                            if attempt < max_retries - 1:
+                                sleep_time = 2 ** attempt
+                                print(f"       [!] Rate limited (429). Retrying block {block_number} in {sleep_time} seconds...")
+                                await asyncio.sleep(sleep_time)
+                            else:
+                                print(f"       [-] Failed to fetch logs for block {block_number}: {e}")
+                        else:
+                            raise e
                 
                 # Step C: Decode and Inject
                 borrow_count = 0
